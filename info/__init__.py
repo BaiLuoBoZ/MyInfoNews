@@ -4,7 +4,8 @@ from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy
 from redis import StrictRedis
 
-from config import Config, config_dict
+from config import config_dict
+from info.modules.home import home_blu
 
 
 def create_app(config_type):  # 定义函数来封装应用的创建  工厂函数
@@ -20,5 +21,8 @@ def create_app(config_type):  # 定义函数来封装应用的创建  工厂函�
     Session(app)
     # 初始化迁移器
     Migrate(app, db)
+
+    # 注册蓝图
+    app.register_blueprint(home_blu)
 
     return app
