@@ -47,6 +47,9 @@ def create_app(config_type):  # 定义函数来封装应用的创建  工厂函�
     from info.modules.home import home_blu
     app.register_blueprint(home_blu)
 
+    from info.modules.passport import passport_blu
+    app.register_blueprint(passport_blu)
+
     # 配置日志信息
     setup_log()
 

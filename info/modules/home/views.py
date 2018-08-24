@@ -1,13 +1,14 @@
-from flask import current_app
+from flask import render_template, current_app
 
 from info.modules.home import home_blu
 
 
 @home_blu.route('/')  # 使用蓝图来装饰路由
 def index():
-    try:
-        1 / 0
-    except BaseException as e:
-        current_app.logger.error("发现了一个错误 %s" % e)
+    print(current_app.url_map)
+    return render_template("index.html")
 
-    return "index"
+
+@home_blu.route('/favicon.ico')
+def favicon():
+    return current_app.send_static_file("news/favicon.ico")
