@@ -37,7 +37,7 @@ def create_app(config_type):  # 定义函数来封装应用的创建  工厂函�
     # 创建mysql数据库连接对象
     db = SQLAlchemy(app)
     # 创建redis数据库连接对象
-    sr = StrictRedis(host=config_class.REDIS_HOST, port=config_class.REDIS_PORT)
+    sr = StrictRedis(host=config_class.REDIS_HOST, port=config_class.REDIS_PORT, decode_responses=True)
     # 初始化session存储对象
     Session(app)
     # 初始化迁移器

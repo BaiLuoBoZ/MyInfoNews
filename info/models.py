@@ -49,7 +49,8 @@ class User(BaseModel, db.Model):
     # 用户所有的粉丝，添加了反向引用followed，代表用户都关注了哪些人(自关联多对多时,需要设置primaryjoin和secondaryjoin)
     followers = db.relationship('User',
                                 secondary=tb_user_follows,
-                                primaryjoin=(id == tb_user_follows.c.followed_id),  # 关系属性根据哪个外键查, primaryjoin就设置哪个外键, 另一个设置为secondaryjoin
+                                primaryjoin=(id == tb_user_follows.c.followed_id),
+                                # 关系属性根据哪个外键查, primaryjoin就设置哪个外键, 另一个设置为secondaryjoin
                                 secondaryjoin=(id == tb_user_follows.c.follower_id),
                                 backref=db.backref('followed', lazy='dynamic'),
                                 lazy='dynamic')
@@ -57,6 +58,13 @@ class User(BaseModel, db.Model):
     # 当前用户所发布的新闻
     news_list = db.relationship('News', backref='user', lazy='dynamic')
 
+    @property
+    def password(self):
+        raise AttributeError("该属性是计算属性，不能直接取值！")
+
+    @password.setter
+    def password(self, value):
+        self.password_hash = generate_password_hash(value)
 
     def to_dict(self):
         resp_dict = {
