@@ -1,6 +1,8 @@
 from datetime import timedelta
 
 from flask import Flask, session
+from flask_migrate import Migrate, MigrateCommand
+from flask_script import Manager
 from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy
 from redis import StrictRedis
@@ -24,7 +26,7 @@ class Config:
     SESSION_USE_SIGNER = True
     # 应用秘钥
     SECRET_KEY = "j7u1TSTgxEXcjJIqrauuHirMfLZnbGAbHRVopZftM5/w0PLGduhUcVHY95dIg8So9Mip+hnl39W1N1jPgimxXA=="
-    # 设置session存储时间
+    # 设置session存储时间(session会默认进行持久化)
     PERMANENT_SESSION_LIFETIME = timedelta(days=7)
 
 
@@ -37,6 +39,12 @@ db = SQLAlchemy(app)
 sr = StrictRedis(host=Config.REDIS_HOST, port=Config.REDIS_PORT)
 # 初始化session存储对象
 Session(app)
+# 创建管理器
+mgr = Manager(app)
+# 初始化迁移器
+Migrate(app, db)
+# 添加迁移命令
+mgr.add_command("mc", MigrateCommand)
 
 
 @app.route('/')
@@ -46,4 +54,4 @@ def index():
 
 
 if __name__ == '__main__':
-    app.run()
+    mgr.run()
