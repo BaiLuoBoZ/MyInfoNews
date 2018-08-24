@@ -1,4 +1,3 @@
-from flask import session
 from flask_migrate import MigrateCommand
 from flask_script import Manager
 
