@@ -50,4 +50,7 @@ def create_app(config_type):  # 定义函数来封装应用的创建  工厂函�
     # 配置日志信息
     setup_log()
 
+    # 让模型文件和主程序建立关联
+    from info import models
+
     return app
