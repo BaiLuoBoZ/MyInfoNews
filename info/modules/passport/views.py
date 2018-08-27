@@ -100,7 +100,7 @@ def register():
     sms_code = request.json.get("sms_code")
     # 参数校验
     if not all([mobile, password, sms_code]):
-        return jsonify(errno=RET.DBERR, errmsg=error_map[RET.DBERR])
+        return jsonify(errno=RET.PARAMERR, errmsg=error_map[RET.PARAMERR])
 
     # 校验手机号码的格式是否正确
     if not re.match(r"1[35678]\d{9}$", mobile):
@@ -136,6 +136,44 @@ def register():
         return jsonify(errno=RET.DBERR, errmsg=error_map[RET.DBERR])
 
     # 状态保持,免密码登陆
+    session["user_id"] = user.id
+
+    return jsonify(errno=RET.OK, errmsg=error_map[RET.OK])
+
+
+# 用户登陆
+@passport_blu.route('/login', methods=['POST'])
+def login():
+    # 获取参数  手机号 密码
+    mobile = request.json.get("mobile")
+    password = request.json.get("password")
+
+    # 校验参数
+    if not all([mobile, password]):
+        return jsonify(errno=RET.PARAMERR, errmsg=error_map[RET.PARAMERR])
+
+    # 校验手机号码的格式是否正确
+    if not re.match(r"1[35678]\d{9}$", mobile):
+        return jsonify(errno=RET.DATAERR, errmsg=error_map[RET.DATAERR])
+
+    # 判断用户是否存在
+    try:
+        user = User.query.filter_by(mobile=mobile).first()
+    except BaseException as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg=error_map[RET.DBERR])
+
+    if not user:
+        return jsonify(errno=RET.USERERR, errmsg=error_map[RET.USERERR])
+
+    # 用户存在,判断密码是否正确
+    if not user.check_password(password):  # 密码错误
+        return jsonify(errno=RET.PWDERR, errmsg=error_map[RET.PWDERR])
+
+    # 记录用户的最后登陆时间
+    user.last_login = datetime.now()
+
+    # 状态保持
     session["user_id"] = user.id
 
     return jsonify(errno=RET.OK, errmsg=error_map[RET.OK])

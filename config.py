@@ -23,6 +23,7 @@ class Config:  # 自定义配置类
     SECRET_KEY = "j7u1TSTgxEXcjJIqrauuHirMfLZnbGAbHRVopZftM5/w0PLGduhUcVHY95dIg8So9Mip+hnl39W1N1jPgimxXA=="
     # 设置session存储时间(session会默认进行持久化)
     PERMANENT_SESSION_LIFETIME = timedelta(days=7)
+    SQLALCHEMY_COMMIT_ON_TEARDOWN = True  # 设置数据发生修改后自动提交,只针对数据修改可以自动提交，添加数据需要手动提交
 
 
 class DevelopConfig(Config):  # 定义开发环境的配置
