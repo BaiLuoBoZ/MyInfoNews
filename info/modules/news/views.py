@@ -19,4 +19,4 @@ def news_detail(news_id):
     # 点击量+1
     news.clicks += 1
 
-    return render_template("detail.html", news=news.to_dict())
+    return render_template("news/detail.html", news=news.to_dict())

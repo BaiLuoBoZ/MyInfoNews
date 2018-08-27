@@ -36,7 +36,7 @@ def index():
     except BaseException as e:
         current_app.logger.error(e)
 
-    return render_template("index.html", user=user, rank_list=rank_list, categories=categories)  # 将用户信息传到模板中
+    return render_template("news/index.html", user=user, rank_list=rank_list, categories=categories)  # 将用户信息传到模板中
 
 
 # 显示新闻列表
