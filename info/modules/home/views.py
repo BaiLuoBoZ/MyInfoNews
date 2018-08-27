@@ -1,7 +1,7 @@
 from flask import render_template, current_app, session, request, jsonify
 
 from info.constants import CLICK_RANK_MAX_NEWS, HOME_PAGE_MAX_NEWS
-from info.models import User, News
+from info.models import User, News, Category
 from info.modules.home import home_blu
 from info.utils.response_code import RET, error_map
 
@@ -29,7 +29,14 @@ def index():
 
     rank_list = [news.to_basic_dict() for news in rank_list]
 
-    return render_template("index.html", user=user, rank_list=rank_list)  # 将用户信息传到模板中
+    # 获取分类列表
+    categories = []
+    try:
+        categories = Category.query.all()
+    except BaseException as e:
+        current_app.logger.error(e)
+
+    return render_template("index.html", user=user, rank_list=rank_list, categories=categories)  # 将用户信息传到模板中
 
 
 # 显示新闻列表
