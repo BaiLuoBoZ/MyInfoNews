@@ -1,6 +1,7 @@
 from flask import render_template, current_app, session
 
-from info.models import User
+from info.constants import CLICK_RANK_MAX_NEWS
+from info.models import User, News
 from info.modules.home import home_blu
 
 
@@ -18,7 +19,16 @@ def index():
 
     user = user.to_dict() if user else None
 
-    return render_template("index.html", user=user) # 将用户信息传到模板中
+    # 显示点击排行 取出点击量最高的前十条新闻,并且倒序排列
+    rank_list = []
+    try:
+        rank_list = News.query.order_by(News.clicks.desc()).limit(CLICK_RANK_MAX_NEWS).all()
+    except BaseException as e:
+        current_app.logger.error(e)
+
+    rank_list = [news.to_basic_dict() for news in rank_list]
+
+    return render_template("index.html", user=user, rank_list=rank_list)  # 将用户信息传到模板中
 
 
 @home_blu.route('/favicon.ico')
