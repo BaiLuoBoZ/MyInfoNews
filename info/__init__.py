@@ -1,7 +1,7 @@
 import logging
 from logging.handlers import RotatingFileHandler
 
-from flask import Flask
+from flask import Flask, render_template
 from flask_migrate import Migrate
 from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy
@@ -67,5 +67,10 @@ def create_app(config_type):  # 定义函数来封装应用的创建  工厂函�
     # 添加自定义过滤器
     from info.common import index_convert
     app.add_template_filter(index_convert, "index_convert")
+
+    # 捕获404异常
+    @app.errorhandler(404)
+    def err_handler(e):
+        return render_template("news/404.html")
 
     return app
