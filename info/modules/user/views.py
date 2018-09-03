@@ -1,12 +1,13 @@
-from flask import g, redirect, render_template, request, jsonify, abort
+from flask import g, redirect, render_template, request, jsonify, abort, current_app
 
 from info.common import user_login_data
 from info.modules.user import user_blu
 
-# 显示个人中心
+from info.utils.image_storage import upload_img
 from info.utils.response_code import RET, error_map
 
 
+# 显示个人中心
 @user_blu.route('/user_info')
 @user_login_data
 def user_info():
@@ -16,7 +17,7 @@ def user_info():
     if not user:
         return redirect('/')
 
-    user = user.to_dict() if user else None
+    user = user.to_dict()
 
     # 如果已登陆
     return render_template("news/user.html", user=user)
@@ -56,3 +57,37 @@ def base_info():
     user.gender = gender
 
     return jsonify(errno=RET.OK, errmsg=error_map[RET.OK])
+
+
+# 显示/修改头像
+@user_blu.route('/pic_info', methods=['GET', 'POST'])
+@user_login_data
+def pic_info():
+    user = g.user
+    # 判断是否登陆
+    if not user:
+        return abort(404)
+
+    # get 请求
+    if request.method == "GET":
+        return render_template("news/user_pic_info.html", user=user.to_dict())
+
+    # post 请求
+    # 获取参数
+    avatar = request.files.get("avatar")
+
+    # 校验参数
+    if not avatar:
+        return jsonify(errno=RET.PARAMERR, errmsg=error_map[RET.PARAMERR])
+    # 上传文件
+    try:
+        img_bytes = avatar.read()
+        file_name = upload_img(img_bytes)
+    except BaseException as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.THIRDERR, errmsg=error_map[RET.THIRDERR])
+
+    # 保存到数据库
+    user.avatar_url = file_name
+
+    return jsonify(errno=RET.OK, errmsg=error_map[RET.OK], data=user.to_dict())

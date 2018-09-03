@@ -17,7 +17,7 @@
 <body>
 <div class="header_con">
     <div class="header">
-        <a href="#" class="logo fl"><img src="../../static/news/images/logo.png" alt="logo"></a>
+        <a href="/" class="logo fl"><img src="../../static/news/images/logo.png" alt="logo"></a>
         <ul class="menu fl">
             {% for category in categories %}
                 <li {% if loop.index == 1 %}class="active" {% endif %}data-cid="{{ category.id }}"><a
