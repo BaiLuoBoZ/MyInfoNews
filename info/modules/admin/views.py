@@ -70,3 +70,12 @@ def login():
 
     # 密码正确,重定向到后台管理页面
     return redirect(url_for("admin.index"))
+
+
+# 退出登陆
+@admin_blu.route('/logout')
+def logout():
+    session.pop("user_id", None)
+    session.pop("is_admin", None)
+
+    return redirect('/')
