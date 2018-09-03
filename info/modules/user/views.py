@@ -139,6 +139,7 @@ def collection():
 
     # 获取参数
     page = request.args.get("p", 1)  # 获取当前页码
+
     # 检验参数
     if not page:
         return abort(404)
@@ -249,3 +250,45 @@ def news_release():
 
     # 返回json状态
     return jsonify(errno=RET.OK, errmsg=error_map[RET.OK])
+
+
+# 显示新闻发布列表
+@user_blu.route('/news_list')
+@user_login_data
+def news_list():
+    # 判断用户是否登陆
+    user = g.user
+    if not user:
+        return abort(404)
+
+    # 获取参数
+    page = request.args.get("p", 1)  # 获取当前页码
+
+    # 检验参数
+    if not page:
+        return abort(404)
+
+    try:
+        page = int(page)
+    except BaseException as e:
+        current_app.logger.error(e)
+        page = 1
+
+    # 查询当前用户发布的新闻
+    news_list = []
+    try:
+        pn = user.news_list.paginate(page, USER_COLLECTION_MAX_NEWS)
+
+        news_list = pn.items
+        total_page = pn.pages
+    except BaseException as e:
+        current_app.logger.error(e)
+        total_page = 1
+
+    data = {
+        "news_list": [news.to_review_dict() for news in news_list],
+        "cur_page": page,
+        "total_page": total_page
+    }
+
+    return render_template("news/user_news_list.html", data=data)
