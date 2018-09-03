@@ -1,8 +1,9 @@
 from flask import g, redirect, render_template, request, jsonify, abort, current_app
 
+from info import db
 from info.common import user_login_data
-from info.constants import USER_COLLECTION_MAX_NEWS
-from info.models import tb_user_collection
+from info.constants import USER_COLLECTION_MAX_NEWS, QINIU_DOMIN_PREFIX
+from info.models import tb_user_collection, Category, News
 from info.modules.user import user_blu
 
 from info.utils.image_storage import upload_img
@@ -166,3 +167,85 @@ def collection():
     }
 
     return render_template("news/user_collection.html", data=data)
+
+
+# 新闻发布
+@user_blu.route('/news_release', methods=['GET', 'POST'])
+@user_login_data
+def news_release():
+    # 判断用户是否登陆
+    user = g.user
+    if not user:
+        return abort(404)
+
+    # get请求
+    if request.method == "GET":
+        # 查询所有的新闻分类
+        categories = []
+        try:
+            categories = Category.query.all()
+        except BaseException as e:
+            current_app.logger.error(e)
+            return abort(404)
+
+        if not categories:
+            return abort(404)
+
+        category_list = [category.to_dict() for category in categories]
+
+        if category_list:
+            category_list.pop(0)
+
+        # 渲染页面
+        return render_template("news/user_news_release.html", category_list=category_list)
+
+    # post 请求
+    # 获取参数
+    title = request.form.get("title")  # 标题
+    category_id = request.form.get("category_id")  # 新闻分类
+    digest = request.form.get("digest")  # 新闻摘要
+    index_image = request.files.get("index_image")  # 图片
+    content = request.form.get("content")  # 新闻内容
+
+    # 校验参数
+    if not all([title, category_id, digest, index_image, content]):
+        return jsonify(errno=RET.PARAMERR, errmsg=error_map[RET.PARAMERR])
+
+    try:
+        category_id = int(category_id)
+    except BaseException as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.PARAMERR, errmsg=error_map[RET.PARAMERR])
+
+    # 创建新的新闻模型
+    news = News()
+    # 保存数据
+    news.title = title
+    news.category_id = category_id
+    news.digest = digest
+    news.content = content
+    # 新闻来源
+    news.source = "朱哥出品,必属精品!"
+    # 当前新闻作者
+    news.user_id = user.id
+    # 当前新闻审核状态  1 表示审核中
+    news.status = 1
+    # 保存新闻列表图片路径
+    try:
+        file_name = upload_img(index_image.read())
+        news.index_image_url = QINIU_DOMIN_PREFIX + file_name
+    except BaseException as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.THIRDERR, errmsg=error_map[RET.THIRDERR])
+
+    # 提交
+    try:
+        db.session.add(news)
+        db.session.commit()
+    except BaseException as e:
+        db.session.rollback()  # 回滚
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg=error_map[RET.DBERR])
+
+    # 返回json状态
+    return jsonify(errno=RET.OK, errmsg=error_map[RET.OK])

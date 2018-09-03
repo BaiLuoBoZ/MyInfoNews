@@ -60,7 +60,7 @@ def get_news_list():
         return jsonify(errno=RET.PARAMERR, errmsg=error_map[RET.PARAMERR])
 
     # 根据不同的cid显示不同的新闻
-    filter_list = []
+    filter_list = [News.status == 0]
     if cid != 1:
         filter_list.append(News.category_id == cid)
 
