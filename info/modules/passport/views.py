@@ -184,6 +184,7 @@ def login():
 def logout():
     # 将信息从session中删除
     session.pop("user_id", None)
+    session.pop("is_admin", None)
 
     # 将结果返回
     return jsonify(errno=RET.OK, errmsg=error_map[RET.OK])
