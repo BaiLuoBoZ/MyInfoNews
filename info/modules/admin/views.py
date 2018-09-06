@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from flask import render_template, request, current_app, redirect, url_for, session, abort
 
 from info.constants import USER_COLLECTION_MAX_NEWS
-from info.models import User
+from info.models import User, News
 from info.modules.admin import admin_blu
 
 
@@ -185,3 +185,40 @@ def user_list():
     }
 
     return render_template("admin/user_list.html", data=data)
+
+
+# 显示新闻审核列表
+@admin_blu.route('/news_review')
+def news_review():
+    # 获取参数
+    page = request.args.get("p", 1)  # 获取当前页码
+
+    # 检验参数
+    if not page:
+        return abort(404)
+
+    try:
+        page = int(page)
+    except BaseException as e:
+        current_app.logger.error(e)
+        page = 1
+
+    # 查询当前页的新闻审核列表
+    news_list = []
+    try:
+        pn = News.query.filter(News.user_id != 0).paginate(page, USER_COLLECTION_MAX_NEWS)
+
+        news_list = pn.items
+        total_page = pn.pages
+    except BaseException as e:
+        current_app.logger.error(e)
+        total_page = 1
+
+    data = {
+        "news_list": [news.to_review_dict() for news in news_list],
+        "cur_page": page,
+        "total_page": total_page
+    }
+
+    return render_template("admin/news_review.html", data=data)
+
