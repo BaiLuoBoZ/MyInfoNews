@@ -281,3 +281,39 @@ def news_review_action():
         news.reason = reason
 
     return jsonify(errno=RET.OK, errmsg=error_map[RET.OK])
+
+
+# 新闻版式编辑列表显示
+@admin_blu.route('/news_edit')
+def news_edit():
+    # 获取参数
+    page = request.args.get("p", 1)  # 获取当前页码
+
+    # 检验参数
+    if not page:
+        return abort(404)
+
+    try:
+        page = int(page)
+    except BaseException as e:
+        current_app.logger.error(e)
+        page = 1
+
+    # 查询当前页的新闻审核编辑列表
+    news_list = []
+    try:
+        pn = News.query.order_by(News.create_time.desc()).paginate(page, USER_COLLECTION_MAX_NEWS)
+
+        news_list = pn.items
+        total_page = pn.pages
+    except BaseException as e:
+        current_app.logger.error(e)
+        total_page = 1
+
+    data = {
+        "news_list": [news.to_review_dict() for news in news_list],
+        "cur_page": page,
+        "total_page": total_page
+    }
+
+    return render_template("admin/news_edit.html", data=data)
