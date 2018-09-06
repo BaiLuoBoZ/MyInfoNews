@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 from flask import render_template, request, current_app, redirect, url_for, session, abort
 
+from info.constants import USER_COLLECTION_MAX_NEWS
 from info.models import User
 from info.modules.admin import admin_blu
 
@@ -143,10 +144,44 @@ def user_count():
         "user_count": user_count,
         "day_user_count": day_user_count,
         "mon_user_count": mon_user_count,
-        "active_time":active_time,
-        "active_count":active_count
+        "active_time": active_time,
+        "active_count": active_count
     }
 
     return render_template("admin/user_count.html", data=data)
 
 
+# 显示用户列表
+@admin_blu.route('/user_list')
+def user_list():
+    # 获取参数
+    page = request.args.get("p", 1)  # 获取当前页码
+
+    # 检验参数
+    if not page:
+        return abort(404)
+
+    try:
+        page = int(page)
+    except BaseException as e:
+        current_app.logger.error(e)
+        page = 1
+
+    # 查询当前页的用户信息
+    user_list = []
+    try:
+        pn = User.query.filter(User.is_admin == False).paginate(page, USER_COLLECTION_MAX_NEWS)
+
+        user_list = pn.items
+        total_page = pn.pages
+    except BaseException as e:
+        current_app.logger.error(e)
+        total_page = 1
+
+    data = {
+        "user_list": [user.to_admin_dict() for user in user_list],
+        "cur_page": page,
+        "total_page": total_page
+    }
+
+    return render_template("admin/user_list.html", data=data)
