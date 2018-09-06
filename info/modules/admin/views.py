@@ -1,14 +1,16 @@
 import time
 from datetime import datetime, timedelta
 
-from flask import render_template, request, current_app, redirect, url_for, session, abort
+from flask import render_template, request, current_app, redirect, url_for, session, abort, jsonify
 
 from info.constants import USER_COLLECTION_MAX_NEWS
 from info.models import User, News
 from info.modules.admin import admin_blu
 
-
 # 显示后台管理
+from info.utils.response_code import RET, error_map
+
+
 @admin_blu.route('/index')
 def index():
     # 取出user_id
@@ -222,3 +224,60 @@ def news_review():
 
     return render_template("admin/news_review.html", data=data)
 
+
+# 显示审核新闻
+@admin_blu.route('/news_review_detail/<int:news_id>')
+def news_review_detail(news_id):
+    # 根据新闻id取出新闻模型
+    news = None
+    try:
+        news = News.query.get(news_id)
+    except BaseException as e:
+        current_app.logger.error(e)
+
+    news = news.to_dict() if news else None
+
+    return render_template("admin/news_review_detail.html", news=news)
+
+
+# 提交新闻审核详情
+@admin_blu.route('/news_review_action', methods=['GET', 'POST'])
+def news_review_action():
+    # 获取参数
+    action = request.json.get("action")
+    news_id = request.json.get("news_id")
+    reason = request.json.get("reason")
+
+    # 校验参数
+    if not all([action, news_id]):
+        return jsonify(errno=RET.PARAMERR, errmsg=error_map[RET.PARAMERR])
+
+    try:
+        news_id = int(news_id)
+    except BaseException as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.PARAMERR, errmsg=error_map[RET.PARAMERR])
+
+    if not action in ["accept", "reject"]:
+        return jsonify(errno=RET.PARAMERR, errmsg=error_map[RET.PARAMERR])
+
+    try:
+        news = News.query.get(news_id)
+    except BaseException as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg=error_map[RET.DBERR])
+
+    if not news:
+        return jsonify(errno=RET.NODATA, errmsg=error_map[RET.NODATA])
+
+    if action == "accept":  # 审核通过
+        news.status = 0
+
+    else:  # 审核未通过
+        if not reason:
+            return jsonify(errno=RET.PARAMERR, errmsg=error_map[RET.PARAMERR])
+        # 修改审核状态,并保存审核未通过原因
+        news.status = -1
+        news.reason = reason
+
+    return jsonify(errno=RET.OK, errmsg=error_map[RET.OK])
