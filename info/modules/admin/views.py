@@ -79,3 +79,6 @@ def logout():
     session.pop("is_admin", None)
 
     return redirect('/')
+
+
+# 用户统计

@@ -1,3 +1,6 @@
+import datetime
+import random
+
 from flask import current_app
 from flask_migrate import MigrateCommand
 from flask_script import Manager
@@ -39,5 +42,30 @@ def create_superuser(username, password):
     print("生成超级管理员成功!")
 
 
+# 添加测试数据(生成十万水军）
+def add_test_users():
+    from info import db
+    from info.models import User
+    users = []
+    now = datetime.datetime.now()
+    for num in range(0, 100000):
+        try:
+            user = User()
+            user.nick_name = "%011d" % num
+            user.mobile = "%011d" % num
+            user.password_hash = "pbkdf2:sha256:50000$SgZPAbEj$a253b9220b7a916e03bf27119d401c48ff4a1c81d7e00644e0aaf6f3a8c55829"
+            user.last_login = now - datetime.timedelta(seconds=random.randint(0, 2678400 * 12))
+            user.create_time = now - datetime.timedelta(seconds=random.randint(0, 2678400 * 12))
+            users.append(user)
+            print(user.mobile)
+        except Exception as e:
+            print(e)
+    db.session.add_all(users)
+    db.session.commit()
+    print('OK')
+
+
 if __name__ == '__main__':
+    # 添加测试数据
+    # add_test_users()
     mgr.run()
