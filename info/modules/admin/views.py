@@ -3,11 +3,12 @@ from datetime import datetime, timedelta
 
 from flask import render_template, request, current_app, redirect, url_for, session, abort, jsonify
 
-from info.constants import USER_COLLECTION_MAX_NEWS
-from info.models import User, News
+from info.constants import USER_COLLECTION_MAX_NEWS, QINIU_DOMIN_PREFIX
+from info.models import User, News, Category
 from info.modules.admin import admin_blu
 
 # 显示后台管理
+from info.utils.image_storage import upload_img
 from info.utils.response_code import RET, error_map
 
 
@@ -241,7 +242,7 @@ def news_review_detail(news_id):
 
 
 # 提交新闻审核详情
-@admin_blu.route('/news_review_action', methods=['GET', 'POST'])
+@admin_blu.route('/news_review_action', methods=['POST'])
 def news_review_action():
     # 获取参数
     action = request.json.get("action")
@@ -317,3 +318,85 @@ def news_edit():
     }
 
     return render_template("admin/news_edit.html", data=data)
+
+
+# 显示新闻版式编辑详情
+@admin_blu.route('/news_edit_detail', methods=['GET', 'POST'])
+def news_edit_detail():
+    # get 请求
+    if request.method == "GET":
+        # 获取参数
+        news_id = request.args.get("news_id")
+        # 校验参数
+        if not news_id:
+            return abort(404)
+
+        news = None
+        try:
+            news = News.query.get(news_id)
+        except BaseException as e:
+            current_app.logger.error(e)
+
+        if not news:
+            return abort(404)
+
+        # 获取所有的新闻分类列表
+        categories = []
+        try:
+            categories = Category.query.filter(Category.id != 1).all()
+        except BaseException as e:
+            current_app.logger.error(e)
+
+        if not categories:
+            return abort(404)
+
+        news = news.to_dict() if news else None
+        category_list = [category.to_dict() for category in categories]
+
+        return render_template("admin/news_edit_detail.html", news=news, category_list=category_list)
+
+    # post 请求
+    # 获取参数
+    title = request.form.get("title")
+    category_id = request.form.get("category_id")
+    digest = request.form.get("digest")
+    index_image = request.files.get("index_image")
+    content = request.form.get("content")
+    news_id = request.form.get("news_id")
+
+    # 校验参数
+    if not all([title, category_id, digest, content, news_id]):
+        return jsonify(errno=RET.PARAMERR, errmsg=error_map[RET.PARAMERR])
+
+    try:
+        news_id = int(news_id)
+        category_id = int(category_id)
+    except BaseException as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.PARAMERR, errmsg=error_map[RET.PARAMERR])
+
+    try:
+        news = News.query.get(news_id)
+    except BaseException as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg=error_map[RET.DBERR])
+
+    if not news:
+        return jsonify(errno=RET.NODATA, errmsg=error_map[RET.NODATA])
+
+    # 保存到数据库
+    news.title = title
+    news.category_id = category_id
+    news.digest = digest
+    news.content = content
+
+    if index_image:
+        try:
+            img_bytes = index_image.read()
+            file_name = upload_img(img_bytes)
+            news.index_image_url = QINIU_DOMIN_PREFIX + file_name
+        except BaseException as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.THIRDERR, errmsg=error_map[RET.THIRDERR])
+
+    return jsonify(errno=RET.OK, errmsg=error_map[RET.OK])
