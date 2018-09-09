@@ -57,6 +57,7 @@ $(function () {
                     $(".follows b").html(count + "")
                     $(".focus").show()
                     $(".focused").hide()
+                    window.location.reload()
                 } else if (resp.errno == "4101") {
                     // 未登录，弹出登录框
                     $('.login_form_con').show();
