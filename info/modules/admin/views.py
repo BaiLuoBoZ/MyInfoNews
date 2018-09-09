@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 from flask import render_template, request, current_app, redirect, url_for, session, abort, jsonify
 
+from info import db
 from info.constants import USER_COLLECTION_MAX_NEWS, QINIU_DOMIN_PREFIX
 from info.models import User, News, Category
 from info.modules.admin import admin_blu
@@ -102,10 +103,15 @@ def user_count():
     mon_user_count = 0
     # 获取本地日期
     t = time.localtime()
+    print(t)
     # 先构建日期字符串
     date_mon_str = "%d-%02d-01" % (t.tm_year, t.tm_mon)
+    print("日期字符串:", date_mon_str)
+    print(type(date_mon_str))
     # 日期字符串可以转换为日期对象
     date_mon = datetime.strptime(date_mon_str, "%Y-%m-%d")
+    print("日期对象:", date_mon)
+    print(type(date_mon))
     # 查询用户月新增人数
     try:
         mon_user_count = User.query.filter(User.is_admin == False, User.create_time >= date_mon).count()
@@ -398,5 +404,68 @@ def news_edit_detail():
         except BaseException as e:
             current_app.logger.error(e)
             return jsonify(errno=RET.THIRDERR, errmsg=error_map[RET.THIRDERR])
+
+    return jsonify(errno=RET.OK, errmsg=error_map[RET.OK])
+
+
+# 新闻分类管理
+@admin_blu.route('/news_type', methods=['GET', 'POST'])
+def news_type():
+    # get 请求
+    if request.method == "GET":
+        # 显示所有的分类
+        categories = []
+        try:
+            categories = Category.query.filter(Category.id != 1).all()
+        except BaseException as e:
+            current_app.logger.error(e)
+
+        if not categories:
+            return abort(404)
+
+        category_list = [category.to_dict() for category in categories]
+
+        return render_template("admin/news_type.html", category_list=category_list)
+
+    # post 请求
+    # 获取参数
+    id = request.json.get("id")
+    name = request.json.get("name")
+
+    # 校验参数
+    if not name:
+        return jsonify(errno=RET.PARAMERR, errmsg=error_map[RET.PARAMERR])
+
+    # 通过id判读是修改还是添加分类
+    if id:  # 修改分类
+        try:
+            id = int(id)
+        except BaseException as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.PARAMERR, errmsg=error_map[RET.PARAMERR])
+
+        try:
+            category = Category.query.get(id)
+        except BaseException as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DBERR, errmsg=error_map[RET.DBERR])
+
+        if not category:
+            return jsonify(errno=RET.NODATA, errmsg=error_map[RET.NODATA])
+
+        # 修改数据
+        category.name = name
+
+    else:  # 添加分类
+        category2 = Category()
+        category2.name = name
+
+        try:
+            db.session.add(category2)
+            db.session.commit()
+        except BaseException as e:
+            current_app.logger.error(e)
+            db.session.rollback()
+            return jsonify(errno=RET.DBERR, errmsg=error_map[RET.DBERR])
 
     return jsonify(errno=RET.OK, errmsg=error_map[RET.OK])
